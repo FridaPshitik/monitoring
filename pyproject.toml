@@ -1,0 +1,7 @@
+[tool.pytest.ini_options]
+env = [
+    "CLOUD_ID=test-cloud-id",
+    "NAME=elastic",
+    "PASSWORD=test-password",
+    "INDEX=test-index",
+]

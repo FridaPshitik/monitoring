@@ -1,0 +1,40 @@
+version: '3'
+services:
+  
+  nginx-unit:
+    build: ./src/nginx-unit\.
+    container_name: nginx-unit
+    volumes:
+      - ./nginx-unit\config\config.json:/docker-entrypoint.d/unit-config.json
+      - ./nginx-unit\webapp:/www
+      - ./nginx-unit\log\unit:/var/log/unit
+    ports:
+      - 8000:8000
+
+  filebeat:
+    build: ./src/filebeat\.
+    container_name: filebeat
+    user: root
+    volumes:
+      - ./nginx-unit\log\unit:/var/log/unit
+    environment:
+      - ELASTICSEARCH_HOST=${ELASTICSEARCH_HOST}
+      - ELASTICSEARCH_USERNAME=${ELASTICSEARCH_USERNAME}
+      - ELASTICSEARCH_PASSWORD=${ELASTICSEARCH_PASSWORD}
+      - ELASTICSEARCH_INDEX=${ELASTICSEARCH_INDEX}
+    depends_on:
+      - nginx-unit
+
+  metricbeat:
+    build: ./src/metricbeat\.
+    container_name: metricbeat
+    user: root
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - ELASTICSEARCH_HOST=${ELASTICSEARCH_HOST}
+      - ELASTICSEARCH_USERNAME=${ELASTICSEARCH_USERNAME}
+      - ELASTICSEARCH_PASSWORD=${ELASTICSEARCH_PASSWORD}
+      - ELASTICSEARCH_INDEX=${ELASTICSEARCH_INDEX}
+    depends_on:
+      - nginx-unit

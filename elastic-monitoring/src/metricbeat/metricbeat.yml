@@ -1,0 +1,13 @@
+metricbeat.modules:
+  - module: docker
+    period: 10s
+    metricsets: ["cpu","memory","container"]
+    hosts: ["unix:///var/run/docker.sock"]
+    containers: ["nginx-unit"]
+    enabled: true
+
+output.elasticsearch:
+  hosts:
+    ["${ELASTICSEARCH_HOST}"]
+  username: "${ELASTICSEARCH_USERNAME:elastic}"
+  password: "${ELASTICSEARCH_PASSWORD}"

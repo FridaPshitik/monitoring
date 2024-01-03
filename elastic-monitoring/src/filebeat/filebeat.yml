@@ -1,0 +1,48 @@
+filebeat.inputs:
+  - type: log
+    paths:
+      - /var/log/unit/access.log
+      
+processors:
+  - dissect:
+      tokenizer: '%{source.address} - %{user.name} [%{nginx.access.time}] "%{nginx.access.request}" %{nginx.access.status} %{nginx.access.body_sent} "%{http.referer}" "%{user_agent.original}" %{nginx.access.request_time}'
+
+  - timestamp:
+      field: "dissect.nginx.access.time"
+      layouts:
+        - "02/Jan/2006:15:04:05 -0700"
+
+  - script:
+      lang: javascript
+      source: >
+        function process(event) {
+          var timestamp = event.Get("@timestamp");
+          var millisecondsToAdd = event.Get("dissect.nginx.access.request_time");
+          var dateString = timestamp.toLocaleString();
+
+          var date = new Date(Date.UTC(
+            parseInt(dateString.substring(0, 4)), 
+            parseInt(dateString.substring(5, 7)) - 1, 
+            parseInt(dateString.substring(8, 10)), 
+            parseInt(dateString.substring(11, 13)), 
+            parseInt(dateString.substring(14, 16)), 
+            parseInt(dateString.substring(17, 19)), 
+            parseInt(dateString.substring(20, 23)) 
+          ));
+
+          date.setUTCMilliseconds(date.getUTCMilliseconds() - parseFloat (millisecondsToAdd) * 1000);
+          event.Put("start_request", date);
+        }
+
+  - drop_fields:
+      fields: ["message", "dissect.nginx.access.time"]
+
+setup.ilm.enabled: false
+setup.template.name: "${ELASTICSEARCH_INDEX}"
+setup.template.pattern: "${ELASTICSEARCH_INDEX}-*"
+
+output.elasticsearch:
+  hosts: ["${ELASTICSEARCH_HOST}"]
+  username: "${ELASTICSEARCH_USERNAME:elastic}"
+  password: "${ELASTICSEARCH_PASSWORD}"
+  index: "${ELASTICSEARCH_INDEX}"
